@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
     private TextInputLayout phoneNumberTIL, codeTIL;
-    String mPhoneNo;
-    String mVerificationId; //The verification id that will be sent to the user
+    String mPhoneNo,enteredCode;
+    String mVerificationId; //The verification id that will be sent from Firebase to user
     Button mSend;
     FirebaseAuth mAuth;
     private PhoneAuthProvider.OnVerificationStateChangedCallbacks  mCallbacks;
@@ -79,7 +79,54 @@ public class LoginActivity extends AppCompatActivity {
         phoneNumberTIL.getEditText().addTextChangedListener(watch);
     }
 
-    /**SignIn*/
+    //Text watcher starts here
+    private final TextWatcher watch = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            Log.d("beforeTextChanged:", "");
+            // removes the error message when starts typing
+            phoneNumberTIL.setError("");
+            codeTIL.setError("");
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+        @Override
+        public void afterTextChanged(Editable s) {
+        }
+    };
+    //Text watcher ends here
+
+    //validations stars here
+    private boolean validatePhoneNumber() {
+        CountryCodePicker ccp;
+        ccp = findViewById(R.id.ccpID);
+        ccp.registerCarrierNumberEditText(phoneNumberTIL.getEditText());
+        mPhoneNo = ccp.getFullNumberWithPlus().trim();
+        if (!(ccp.isValidFullNumber())) {
+            phoneNumberTIL.setError("Enter valid phone number");
+            return false;
+        } else {
+            phoneNumberTIL.setError(null);
+            return true;
+        }
+    }
+    private boolean validateCode() {
+        enteredCode = codeTIL.getEditText().getText().toString().trim();
+        if (enteredCode.isEmpty() || enteredCode.length() != 6) {
+            codeTIL.setError("Field can't be empty");
+            return false;
+        } else {
+            codeTIL.setError(null);
+            return true;
+        }
+    }
+
+    //validations ends here
+    /**
+     * SignIn
+     * */
     private void signInWithPhoneAuth(PhoneAuthCredential phoneAuthCredential) {
         // custom progress dialog
         final ProgressDialog progressDialog = new ProgressDialog(this,
@@ -101,43 +148,9 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
-
-    //Text watcher starts here
-    private final TextWatcher watch = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            Log.d("beforeTextChanged:", "");
-            // removes the error message when starts typing
-            phoneNumberTIL.setError("");
-        }
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-        }
-        @Override
-        public void afterTextChanged(Editable s) {
-        }
-    };
-    //Text watcher ends here
-
-    private boolean validatePhoneNumber() {
-        CountryCodePicker ccp;
-        ccp = findViewById(R.id.ccpID);
-        ccp.registerCarrierNumberEditText(phoneNumberTIL.getEditText());
-        mPhoneNo = ccp.getFullNumberWithPlus();
-        if (!(ccp.isValidFullNumber())) {
-            phoneNumberTIL.setError("Enter valid phone number");
-            return false;
-        } else {
-            phoneNumberTIL.setError(null);
-            return true;
-        }
-    }
-
     /**
      * for sending verification code
      * */
-
     private void phoneVerification() {
         /**@param phone_number
          * @param Timeout
@@ -147,17 +160,10 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "phoneVerification: ");
         PhoneAuthProvider.getInstance().verifyPhoneNumber(mPhoneNo,60, TimeUnit.SECONDS,this,mCallbacks);
     }
-
-    public void submit(View view) {
-        if (!(validatePhoneNumber())) {
-            return;
-        }
-        if (mVerificationId != null){
-            verifyCodeManually();
-        }
-        else {
-            phoneVerification();
-        }
+    private void verifyCodeManually(){
+        Log.d(TAG, "verifyCodeManually: ");
+        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationId,enteredCode); //creating credential
+        signInWithPhoneAuth(credential); //signing user
     }
 
     private void mainActivityIntent(){
@@ -171,10 +177,17 @@ public class LoginActivity extends AppCompatActivity {
     /**
      * In case of verifying manually
      * */
-    private void verifyCodeManually(){
-        Log.d(TAG, "verifyCodeManually: ");
-        String enteredCode = codeTIL.getEditText().getText().toString();
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationId,enteredCode); //creating credential
-        signInWithPhoneAuth(credential); //signing user
+
+
+    public void submit(View view) {
+        if (!(validatePhoneNumber())) {
+            return;
+        }
+        if (mVerificationId != null){
+            verifyCodeManually();
+        }
+        else {
+            phoneVerification();
+        }
     }
 }
