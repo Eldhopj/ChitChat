@@ -22,9 +22,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.hbb20.CountryCodePicker;
 
 import java.util.concurrent.TimeUnit;
+
+import in.eldhopj.chitchat.ModelClass.ListUserModelClass;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
@@ -140,7 +147,30 @@ public class LoginActivity extends AppCompatActivity {
             public void onComplete(@NonNull Task<AuthResult> task) {
                 progressDialog.dismiss();
                 if (task.isSuccessful()){
-                    mainActivityIntent();
+                    final FirebaseUser user = mAuth.getCurrentUser(); // Gets all user associated info when signing
+                    if (user != null){
+                        final DatabaseReference mUserDB = FirebaseDatabase.getInstance().getReference().child("user").child(user.getUid());
+                        /*Listener to fetches the value
+                        * addListenerForSingleValueEvent wont lesson continuously , it only lessons once*/
+                        mUserDB.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
+                                if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
+                                    //@params name , phoneNumber
+                                    ListUserModelClass userData = new ListUserModelClass(user.getPhoneNumber(),user.getPhoneNumber());
+                                    mUserDB.setValue(userData);
+                                }
+                                mainActivityIntent();
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+                                progressDialog.dismiss();
+                                Toast.makeText(LoginActivity.this, databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
                 }
                 else{
                     Toast.makeText(LoginActivity.this, task.getException().getLocalizedMessage(), Toast.LENGTH_SHORT).show();
@@ -160,10 +190,18 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "phoneVerification: ");
         PhoneAuthProvider.getInstance().verifyPhoneNumber(mPhoneNo,60, TimeUnit.SECONDS,this,mCallbacks);
     }
+
+    /**
+     * In case of verifying manually
+     * */
     private void verifyCodeManually(){
         Log.d(TAG, "verifyCodeManually: ");
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationId,enteredCode); //creating credential
-        signInWithPhoneAuth(credential); //signing user
+        if (!(validateCode())) {
+            return;
+        }else {
+            PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationId, enteredCode); //creating credential
+            signInWithPhoneAuth(credential); //signing user
+        }
     }
 
     private void mainActivityIntent(){
@@ -174,12 +212,8 @@ public class LoginActivity extends AppCompatActivity {
         return;
     }
 
-    /**
-     * In case of verifying manually
-     * */
 
-
-    public void submit(View view) {
+    public void login (View view) {
         if (!(validatePhoneNumber())) {
             return;
         }

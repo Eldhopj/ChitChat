@@ -17,11 +17,16 @@ import java.util.List;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
-/**Commit 1 :
+/**Commit 1:
  *          Phone auth using Firebase
  * Commit 2:
  *          Setup RecyclerView
- *          Permissions*/
+ *          Permissions
+ * Commit 3:
+ *          Display contacts
+ * Commit 4:
+ *          Save users data's into Database while login
+ *          Display only the users in ChitChat on findUser*/
 public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks{
     private FirebaseAuth mAuth;
     private final int READ_WRITE_CONTACTS = 1;
@@ -29,7 +34,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         mAuth = FirebaseAuth.getInstance();  //firebase
         FirebaseUser user = mAuth.getCurrentUser();
 
