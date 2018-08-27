@@ -26,7 +26,10 @@ import pub.devrel.easypermissions.EasyPermissions;
  *          Display contacts
  * Commit 4:
  *          Save users data's into Database while login
- *          Display only the users in ChitChat on findUser*/
+ *          Display only the users in ChitChat on findUser
+ * Commit 5:
+ *          Fix UI freeze bug while loading contacts makes code more snappy (FindUserActivity)
+ * */
 public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks{
     private FirebaseAuth mAuth;
     private final int READ_WRITE_CONTACTS = 1;
