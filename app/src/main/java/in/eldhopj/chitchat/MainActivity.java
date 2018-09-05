@@ -38,15 +38,22 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mAuth = FirebaseAuth.getInstance();  //firebase
-        FirebaseUser user = mAuth.getCurrentUser();
 
-        if(user == null){
-          loginActivityIntent();
-        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             reqContactsPerms();
         }
     }
+
+    @Override
+    protected void onStart() {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if(user == null){
+            loginActivityIntent();
+        }
+        super.onStart();
+    }
+
     private void logout(){
         mAuth.signOut();
         loginActivityIntent();
@@ -115,4 +122,5 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                     .show();
         }
     }
+    // permission codes ends here
 }

@@ -18,7 +18,6 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
@@ -116,10 +115,7 @@ public class FindUserActivity extends AppCompatActivity {
 
         DatabaseReference mUserDb = FirebaseDatabase.getInstance().getReference().child("user");
 
-        /*Query is a way of fetching data with certain parameters
-            */
-        Query query = mUserDb.orderByChild("phone");
-        query.addListenerForSingleValueEvent(new ValueEventListener() {
+        mUserDb.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull final DataSnapshot dataSnapshot) {
 
@@ -155,17 +151,16 @@ public class FindUserActivity extends AppCompatActivity {
                                            }
                                            //TODO progress dialog for loading contacts
                                            mUserList.add(users);
-                                           runOnUiThread(new Runnable() {
-                                               @Override
-                                               public void run() {
-                                                   mUserListAdapter.notifyDataSetChanged(); //Telling adapter something has been changed and update it
-                                               }
-                                           });
                                        }
-
                                    }
                                }
                            }
+                           runOnUiThread(new Runnable() {
+                               @Override
+                               public void run() {
+                                   mUserListAdapter.notifyDataSetChanged(); //Telling adapter something has been changed and update it
+                               }
+                           });
                        }
                    }).start();
                 }
