@@ -32,8 +32,10 @@ dependencies {
 
     implementation 'com.android.support:design:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
+
     implementation 'com.hbb20:ccp:2.2.2'
     implementation 'pub.devrel:easypermissions:1.3.0'
+    implementation 'de.hdodenhof:circleimageview:2.2.0'
 }
 
 apply plugin: 'com.google.gms.google-services'

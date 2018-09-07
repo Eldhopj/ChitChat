@@ -1,10 +1,10 @@
 package in.eldhopj.chitchat.ModelClass;
 
-public class ListUserModelClass {
+public class ListUser {
     private String name;
     private String phone;
 
-    public ListUserModelClass(String name, String phone) {
+    public ListUser(String name, String phone) {
         this.name = name;
         this.phone = phone;
     }

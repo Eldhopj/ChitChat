@@ -1,4 +1,4 @@
-package in.eldhopj.chitchat;
+package in.eldhopj.chitchat.others;
 
 import java.util.HashMap;
 import java.util.Map;

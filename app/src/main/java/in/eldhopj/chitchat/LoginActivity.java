@@ -15,23 +15,26 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.hbb20.CountryCodePicker;
 
 import java.util.concurrent.TimeUnit;
 
-import in.eldhopj.chitchat.ModelClass.ListUserModelClass;
+import in.eldhopj.chitchat.ModelClass.ListUser;
+
+import static in.eldhopj.chitchat.others.Common.firebaseUser;
+import static in.eldhopj.chitchat.others.Common.mAuth;
+import static in.eldhopj.chitchat.others.Common.rootReference;
+import static in.eldhopj.chitchat.others.Common.uID;
+import static in.eldhopj.chitchat.others.Common.users;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
@@ -39,7 +42,7 @@ public class LoginActivity extends AppCompatActivity {
     String mPhoneNo,enteredCode;
     String mVerificationId; //The verification id that will be sent from Firebase to user
     Button mSend;
-    FirebaseAuth mAuth;
+
     private PhoneAuthProvider.OnVerificationStateChangedCallbacks  mCallbacks;
 
     @Override
@@ -50,14 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         phoneNumberTIL = findViewById(R.id.phoneNoTIL);
         codeTIL = findViewById(R.id.codeTIL);
         mSend = findViewById(R.id.send);
-        mAuth = FirebaseAuth.getInstance();
-        FirebaseApp.initializeApp(getApplicationContext());
 
-        //AutoLogin
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user != null) {  // Check if user is signed in (non-null) and update UI accordingly.
-            mainActivityIntent();
-        }
 
         /**Checks if the user enters correct code or not*/
         mCallbacks = new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
@@ -142,14 +138,16 @@ public class LoginActivity extends AppCompatActivity {
         progressDialog.setMessage("Welcome...");
         progressDialog.show();
 
+        mAuth = FirebaseAuth.getInstance();
         mAuth.signInWithCredential(phoneAuthCredential).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 progressDialog.dismiss();
                 if (task.isSuccessful()){
-                    final FirebaseUser user = mAuth.getCurrentUser(); // Gets all user associated info when signing
-                    if (user != null){
-                        final DatabaseReference mUserDB = FirebaseDatabase.getInstance().getReference().child("user").child(user.getUid());
+                    firebaseUser =  mAuth.getCurrentUser();
+                    if (firebaseUser != null){
+                        uID = firebaseUser.getUid();
+                        final DatabaseReference mUserDB = rootReference.child(users).child(uID);
                         /*Listener to fetches the value
                         * addListenerForSingleValueEvent wont lesson continuously , it only lessons once*/
                         mUserDB.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -157,10 +155,10 @@ public class LoginActivity extends AppCompatActivity {
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
                                     //@params name , phoneNumber
-                                    ListUserModelClass userData = new ListUserModelClass(user.getPhoneNumber(),user.getPhoneNumber());
+                                    ListUser userData = new ListUser(firebaseUser.getPhoneNumber(),firebaseUser.getPhoneNumber());
                                     mUserDB.setValue(userData);
                                 }
-                                mainActivityIntent();
+                                settingsActivityIntent();
                             }
 
                             @Override
@@ -204,8 +202,8 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void mainActivityIntent(){
-        Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+    private void settingsActivityIntent(){
+        Intent intent = new Intent(getApplicationContext(),AccountSettingsActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);//We need to close all the existing activity because we don't want our user to navigate back on backButton press
         startActivity(intent);
         finish();

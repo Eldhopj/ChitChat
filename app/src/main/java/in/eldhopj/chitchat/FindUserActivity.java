@@ -16,15 +16,17 @@ import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import in.eldhopj.chitchat.Adapters.UserListAdapter;
-import in.eldhopj.chitchat.ModelClass.ListUserModelClass;
+import in.eldhopj.chitchat.ModelClass.ListUser;
+import in.eldhopj.chitchat.others.CountryIso2Phone;
+
+import static in.eldhopj.chitchat.others.Common.rootReference;
+import static in.eldhopj.chitchat.others.Common.users;
 
 public class FindUserActivity extends AppCompatActivity {
     private static final String TAG = "FindUserActivity";
@@ -32,7 +34,7 @@ public class FindUserActivity extends AppCompatActivity {
     private Cursor phones;
     private ProgressDialog progressDialog;
     private RecyclerView mRecyclerView;
-    private List<ListUserModelClass> mUserList, mContactList; // mUserList -> ChitChat users , mContactList ->Contacts in your phone
+    private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat users , mContactList ->Contacts in your phone
     private UserListAdapter mUserListAdapter;
 
     @Override
@@ -55,7 +57,7 @@ public class FindUserActivity extends AppCompatActivity {
 
     /**Fetching all saved contacts from phone*/
     //TODO : Fix this memory leak using weak reference
-    private class GetContactList extends AsyncTask<Void, Void, List<ListUserModelClass>> {
+    private class GetContactList extends AsyncTask<Void, Void, List<ListUser>> {
 
         @Override
         protected void onPreExecute() {
@@ -65,7 +67,7 @@ public class FindUserActivity extends AppCompatActivity {
         }
 
         @Override
-        protected List<ListUserModelClass> doInBackground(Void... voids) {
+        protected List<ListUser> doInBackground(Void... voids) {
             Log.d(TAG, "doInBackground: ");
             if (phones != null) {
                 while (phones.moveToNext()){ //Get contacts until when cursor cant move to next
@@ -75,7 +77,7 @@ public class FindUserActivity extends AppCompatActivity {
 
                     phone = normalizingNumber(phone);
 
-                    ListUserModelClass list = new ListUserModelClass(name,phone);
+                    ListUser list = new ListUser(name,phone);
                     mContactList.add(list);
                 }
                 phones.close();
@@ -84,8 +86,8 @@ public class FindUserActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(List<ListUserModelClass> listUserModelClasses) {
-            super.onPostExecute(listUserModelClasses);
+        protected void onPostExecute(List<ListUser> listUsers) {
+            super.onPostExecute(listUsers);
             Log.d(TAG, "onPostExecute: ");
             fetchUsers(mContactList);
         }
@@ -110,12 +112,10 @@ public class FindUserActivity extends AppCompatActivity {
     }
 
     /**Get users from Firebase who are in phones contact */
-    private void fetchUsers(final List<ListUserModelClass> mContactList) {
+    private void fetchUsers(final List<ListUser> mContactList) {
         Log.d(TAG, "fetchUsers: ");
 
-        DatabaseReference mUserDb = FirebaseDatabase.getInstance().getReference().child("user");
-
-        mUserDb.addListenerForSingleValueEvent(new ValueEventListener() {
+        rootReference.child(users).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull final DataSnapshot dataSnapshot) {
 
@@ -131,19 +131,19 @@ public class FindUserActivity extends AppCompatActivity {
                            String name;
                            Log.d(TAG, "run: ");
                            for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                               for (ListUserModelClass phoneNum : mContactList) {
+                               for (ListUser phoneNum : mContactList) {
                                    phone = childSnapshot.child("phone").getValue().toString();
                                    if (phone.equals(phoneNum.getPhone())) {
                                        if (childSnapshot.child("name").getValue() != null) {
                                            name = childSnapshot.child("name").getValue().toString();// check if it is null or not, if null when we convert into string it will crash
 
-                                           ListUserModelClass users = new ListUserModelClass(name, phone);
+                                           ListUser users = new ListUser(name, phone);
 
                                            // looks through the mContactList and find the name of the specific phone number if the name is same as phone number
                                            // ie, if user didn't give name use the phone contacts name
 
                                            if (name.equals(phone)) {
-                                               for (ListUserModelClass contact : mContactList) { // Iterate through every contact
+                                               for (ListUser contact : mContactList) { // Iterate through every contact
                                                    if (contact.getPhone().equals(users.getPhone())) { // If phone number matches
                                                        users.setName(contact.getName());
                                                    }

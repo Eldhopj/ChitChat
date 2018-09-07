@@ -10,18 +10,18 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import in.eldhopj.chitchat.ModelClass.ListUserModelClass;
+import in.eldhopj.chitchat.ModelClass.ListUser;
 import in.eldhopj.chitchat.R;
 
 public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHolder> { //UserListAdapter
 
 
-    private List<ListUserModelClass> mListItems; // List
+    private List<ListUser> mListItems; // List
     private Context mContext;
     private OnItemClickListener mListener; // Listener for the OnItemClickListener interface
 
     //constructor
-    public UserListAdapter(List<ListUserModelClass> listItems, Context context) { // constructor
+    public UserListAdapter(List<ListUser> listItems, Context context) { // constructor
         this.mListItems = listItems;
         this.mContext = context;
     }
@@ -48,7 +48,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {//populate the data into the list_item (View Holder), as we scroll
         //Binding data to the list_item
-        ListUserModelClass listitem = mListItems.get(position);
+        ListUser listitem = mListItems.get(position);
         holder.nameTv.setText(listitem.getName());
         holder.phoneTv.setText(listitem.getPhone());
     }
