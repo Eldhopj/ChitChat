@@ -139,10 +139,10 @@ public class FindUserActivity extends AppCompatActivity {
 
                                            ListUser users = new ListUser(name, phone);
 
-                                           // looks through the mContactList and find the name of the specific phone number if the name is same as phone number
+                                           // looks through the mContactList and find the name which have empty string
                                            // ie, if user didn't give name use the phone contacts name
 
-                                           if (name.equals(phone)) {
+                                           if (name.equals("")) {
                                                for (ListUser contact : mContactList) { // Iterate through every contact
                                                    if (contact.getPhone().equals(users.getPhone())) { // If phone number matches
                                                        users.setName(contact.getName());

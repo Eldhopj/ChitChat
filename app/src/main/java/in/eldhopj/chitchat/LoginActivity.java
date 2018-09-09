@@ -28,7 +28,7 @@ import com.hbb20.CountryCodePicker;
 
 import java.util.concurrent.TimeUnit;
 
-import in.eldhopj.chitchat.ModelClass.ListUser;
+import in.eldhopj.chitchat.ModelClass.AccountSettings;
 
 import static in.eldhopj.chitchat.others.Common.firebaseUser;
 import static in.eldhopj.chitchat.others.Common.mAuth;
@@ -155,7 +155,7 @@ public class LoginActivity extends AppCompatActivity {
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
                                     //@params name , phoneNumber
-                                    ListUser userData = new ListUser(firebaseUser.getPhoneNumber(),firebaseUser.getPhoneNumber());
+                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),"","","");
                                     mUserDB.setValue(userData);
                                 }
                                 settingsActivityIntent();
