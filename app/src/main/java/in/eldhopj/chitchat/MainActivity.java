@@ -6,12 +6,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
 import java.util.List;
 
-import in.eldhopj.chitchat.others.SharedPrefsManager;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -27,8 +29,8 @@ import static in.eldhopj.chitchat.others.Common.mAuth;
  * Commit 3:
  *          Display contacts
  * Commit 4:
- *          Save users data's into Database while login
- *          Display only the users in ChitChat on findUser
+ *          Save USERS data's into Database while login
+ *          Display only the USERS in ChitChat on findUser
  * Commit 5:
  *          Fix UI freeze bug while loading contacts makes code more snappy (FindUserActivity)
  * */
@@ -36,11 +38,16 @@ import static in.eldhopj.chitchat.others.Common.mAuth;
 //TODO : Make main class as launcher activity on Manifest
 public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks{
     private static final String TAG = "MainActivity";
+    private Toolbar mainToolbar;
     private final int READ_WRITE_CONTACTS = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mainToolbar = findViewById(R.id.toolbar_main);
+        setSupportActionBar(mainToolbar);
+        getSupportActionBar().setTitle("Chit Chat");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             reqContactsPerms();
@@ -56,12 +63,33 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         super.onStart();
     }
 
-    private void logout(){
-        mAuth.signOut();
-        SharedPrefsManager.getInstance(getApplicationContext()).clear();
-        loginActivityIntent();
 
+    // Menu Starts here
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu,menu);
+        return super.onCreateOptionsMenu(menu);
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()){ // get the ID
+            case R.id.action_logout_btn:
+                mAuth.signOut();
+                loginActivityIntent();
+                return true;
+
+            case R.id.action_settings_btn:
+                Intent intent = new Intent(getApplicationContext(), AccountSettingsActivity.class);
+                startActivity(intent);
+            default:
+                return false;
+
+        }
+    }
+    // Menu ends here
+
     private void loginActivityIntent(){
         Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // To clean up all activities
@@ -126,8 +154,5 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
-    public void logout(View view) {
-        logout();
-    }
     // permission codes ends here
 }

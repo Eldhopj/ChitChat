@@ -17,7 +17,8 @@
         android:name=".others.Common"
         android:theme="@style/AppTheme">
         <activity android:name=".LoginActivity" />
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity"
+            android:launchMode="singleTop"> <!--prevents creation of MainActivity when coming back-->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,7 +28,10 @@
         <activity android:name=".FindUserActivity" />
         <activity android:name=".ProfileActivity">
         </activity>
-        <activity android:name=".AccountSettingsActivity"></activity>
+        <activity android:name=".AccountSettingsActivity"
+            android:parentActivityName=".MainActivity"> <!--making MainActivity as the parent of settings Activity-->
+
+        </activity>
 
         <!--Add if there is no actionbar on the theme-->
         <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity"

@@ -30,11 +30,11 @@ import java.util.concurrent.TimeUnit;
 
 import in.eldhopj.chitchat.ModelClass.AccountSettings;
 
+import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.firebaseUser;
 import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 import static in.eldhopj.chitchat.others.Common.uID;
-import static in.eldhopj.chitchat.others.Common.users;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
@@ -136,6 +136,7 @@ public class LoginActivity extends AppCompatActivity {
                 R.style.Theme_AppCompat_Light_Dialog_Alert);
         progressDialog.setIndeterminate(true);
         progressDialog.setMessage("Welcome...");
+        progressDialog.setCanceledOnTouchOutside(false); // Prevents cancelling of progress bar on touching outside
         progressDialog.show();
 
         mAuth = FirebaseAuth.getInstance();
@@ -147,7 +148,7 @@ public class LoginActivity extends AppCompatActivity {
                     firebaseUser =  mAuth.getCurrentUser();
                     if (firebaseUser != null){
                         uID = firebaseUser.getUid();
-                        final DatabaseReference mUserDB = rootReference.child(users).child(uID);
+                        final DatabaseReference mUserDB = rootReference.child(USERS).child(uID);
                         /*Listener to fetches the value
                         * addListenerForSingleValueEvent wont lesson continuously , it only lessons once*/
                         mUserDB.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -155,7 +156,7 @@ public class LoginActivity extends AppCompatActivity {
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
                                     //@params name , phoneNumber
-                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),"","","");
+                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null,"");
                                     mUserDB.setValue(userData);
                                 }
                                 settingsActivityIntent();
@@ -186,7 +187,7 @@ public class LoginActivity extends AppCompatActivity {
          * @param activity
          * @param callBack -> for handling failures or successes */
         Log.d(TAG, "phoneVerification: ");
-        PhoneAuthProvider.getInstance().verifyPhoneNumber(mPhoneNo,60, TimeUnit.SECONDS,this,mCallbacks);
+        PhoneAuthProvider.getInstance().verifyPhoneNumber(mPhoneNo,120, TimeUnit.SECONDS,this,mCallbacks);
     }
 
     /**

@@ -3,7 +3,7 @@ package in.eldhopj.chitchat;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-/**For to view the profile of other users*/
+/**For to view the profile of other USERS*/
 public class ProfileActivity extends AppCompatActivity {
 
     @Override

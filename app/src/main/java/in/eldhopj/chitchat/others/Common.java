@@ -1,7 +1,6 @@
 package in.eldhopj.chitchat.others;
 
 import android.app.Application;
-import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -18,8 +17,8 @@ public class Common extends Application {
     public static DatabaseReference rootReference;
     public static StorageReference storageRootReference;
 
-    public static final String users = "users";
-    public static final String  profileImages = "profile_pics";
+    public static final String USERS = "users";
+    public static final String PROFILE_PICS = "profile_pics";
     @Override
     public void onCreate() {
         super.onCreate();
@@ -34,8 +33,6 @@ public class Common extends Application {
 
         rootReference = FirebaseDatabase.getInstance().getReference();
         storageRootReference = FirebaseStorage.getInstance().getReference();
-
-        Log.d(TAG, "onCreate: ");
     }
 
 }

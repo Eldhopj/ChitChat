@@ -25,8 +25,8 @@ import in.eldhopj.chitchat.Adapters.UserListAdapter;
 import in.eldhopj.chitchat.ModelClass.ListUser;
 import in.eldhopj.chitchat.others.CountryIso2Phone;
 
+import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.rootReference;
-import static in.eldhopj.chitchat.others.Common.users;
 
 public class FindUserActivity extends AppCompatActivity {
     private static final String TAG = "FindUserActivity";
@@ -34,7 +34,7 @@ public class FindUserActivity extends AppCompatActivity {
     private Cursor phones;
     private ProgressDialog progressDialog;
     private RecyclerView mRecyclerView;
-    private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat users , mContactList ->Contacts in your phone
+    private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat USERS , mContactList ->Contacts in your phone
     private UserListAdapter mUserListAdapter;
 
     @Override
@@ -48,6 +48,7 @@ public class FindUserActivity extends AppCompatActivity {
         progressDialog = new ProgressDialog(this,
                 R.style.Theme_AppCompat_Light_Dialog_Alert);
         progressDialog.setIndeterminate(true);
+        progressDialog.setCanceledOnTouchOutside(false); // Prevents cancelling of progress bar on touching outside
         progressDialog.setMessage("Loading Users...");
 
         initRecyclerView();
@@ -111,11 +112,11 @@ public class FindUserActivity extends AppCompatActivity {
         return phoneNum;
     }
 
-    /**Get users from Firebase who are in phones contact */
+    /**Get USERS from Firebase who are in phones contact */
     private void fetchUsers(final List<ListUser> mContactList) {
         Log.d(TAG, "fetchUsers: ");
 
-        rootReference.child(users).addListenerForSingleValueEvent(new ValueEventListener() {
+        rootReference.child(USERS).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull final DataSnapshot dataSnapshot) {
 
@@ -123,7 +124,7 @@ public class FindUserActivity extends AppCompatActivity {
 
                 if (dataSnapshot.exists()) { // checks whether the db exists
                     /*Runs in a background thread
-                    Here we want to fetch the data's of numbers only on users contact*/
+                    Here we want to fetch the data's of numbers only on USERS contact*/
                    new Thread(new Runnable() {
                        @Override
                        public void run() {
