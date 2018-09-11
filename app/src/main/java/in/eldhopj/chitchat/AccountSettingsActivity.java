@@ -6,8 +6,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputLayout;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -26,8 +31,11 @@ import java.util.HashMap;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import static in.eldhopj.chitchat.others.Common.NAME;
 import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
+import static in.eldhopj.chitchat.others.Common.STATUS;
 import static in.eldhopj.chitchat.others.Common.USERS;
+import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 import static in.eldhopj.chitchat.others.Common.storageRootReference;
 import static in.eldhopj.chitchat.others.Common.uID;
@@ -35,9 +43,11 @@ import static in.eldhopj.chitchat.others.Common.uID;
 /**For setting up name status and other user things*/
 public class AccountSettingsActivity extends AppCompatActivity {
     private static final String TAG = "AccountSettingsActivity";
+    boolean enableToolbar=true;
     private TextInputLayout nameTIL,statusTIL;
     private ProgressDialog progressDialog;
     private DatabaseReference mUserDb;
+
     CircleImageView profilePic;
 
     @Override
@@ -48,6 +58,21 @@ public class AccountSettingsActivity extends AppCompatActivity {
         nameTIL = findViewById(R.id.name);
         statusTIL = findViewById(R.id.status);
         profilePic = findViewById(R.id.profilePic);
+        Button skipBtn = findViewById(R.id.skip);
+
+        enableToolbar = getIntent().getBooleanExtra("FromLoginActivity",true);
+
+        if (enableToolbar) {
+            skipBtn.setVisibility(View.GONE);
+            Toolbar mainToolbar = findViewById(R.id.toolbar_main);
+            mainToolbar.setVisibility(View.VISIBLE);
+            setSupportActionBar(mainToolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("Account Settings");
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                getSupportActionBar().setDisplayShowHomeEnabled(true);
+            }
+        }
 
         progressDialog = new ProgressDialog(this,
                 R.style.Theme_AppCompat_Light_Dialog_Alert);
@@ -62,8 +87,8 @@ public class AccountSettingsActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if(dataSnapshot.exists()) {
 
-                    String name = dataSnapshot.child("name").getValue().toString();
-                    String status = dataSnapshot.child("status").getValue().toString();
+                    String name = dataSnapshot.child(NAME).getValue().toString();
+                    String status = dataSnapshot.child(STATUS).getValue().toString();
                     String profileImage;
                     if (dataSnapshot.child(PROFILE_PICS).getValue() != null) {
                         // If the Db contains a URL load that url into imageView
@@ -83,14 +108,39 @@ public class AccountSettingsActivity extends AppCompatActivity {
         });
     }
 
-    /** Saving into shared prefs and updating the values in Firebase*/
+    // Menu Starts here
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_accountsettings,menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()){ // get the ID
+            case android.R.id.home:  // For Back Navigation
+                NavUtils.navigateUpFromSameTask(this);
+                return true;
+            case R.id.action_logout_btn:
+                mAuth.signOut();
+                loginActivityIntent();
+                return true;
+            default:
+                return false;
+
+        }
+    }
+    // Menu ends here
+
+    /** Saving and updating the values in Firebase*/
     public void saveSettings(View view) {
         String name = nameTIL.getEditText().getText().toString();
         String status = statusTIL.getEditText().getText().toString();
 
         HashMap<String,Object> settings = new HashMap<>();
-        settings.put("name",name);
-        settings.put("status",status);
+        settings.put(NAME,name);
+        settings.put(STATUS,status);
         DatabaseReference mUserDb= rootReference.child(USERS).child(uID);
         progressDialog.setMessage("Saving...");
         progressDialog.show();
@@ -187,7 +237,13 @@ public class AccountSettingsActivity extends AppCompatActivity {
         }
     }
 
-
+    private void loginActivityIntent(){
+        Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // To clean up all activities
+        startActivity(intent);
+        finish();
+        return;
+    }
     //NOTE : Use below code only if the user get logout when login activity , usually its not necessary that's why its commented out
 
 //    @Override

@@ -47,7 +47,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         mainToolbar = findViewById(R.id.toolbar_main);
         setSupportActionBar(mainToolbar);
-        getSupportActionBar().setTitle("Chit Chat");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("Chit Chat");
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             reqContactsPerms();
@@ -79,7 +81,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 mAuth.signOut();
                 loginActivityIntent();
                 return true;
-
             case R.id.action_settings_btn:
                 Intent intent = new Intent(getApplicationContext(), AccountSettingsActivity.class);
                 startActivity(intent);

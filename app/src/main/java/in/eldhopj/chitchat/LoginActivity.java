@@ -155,7 +155,7 @@ public class LoginActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
-                                    //@params name , phoneNumber
+                                    //@params name , PHONE_NUMBER
                                     AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null,"");
                                     mUserDB.setValue(userData);
                                 }
@@ -206,6 +206,7 @@ public class LoginActivity extends AppCompatActivity {
     private void settingsActivityIntent(){
         Intent intent = new Intent(getApplicationContext(),AccountSettingsActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);//We need to close all the existing activity because we don't want our user to navigate back on backButton press
+        intent.putExtra("FromLoginActivity",false); // Disable the tool bar in settings activity
         startActivity(intent);
         finish();
         return;

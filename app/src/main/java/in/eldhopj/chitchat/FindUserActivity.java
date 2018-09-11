@@ -1,6 +1,7 @@
 package in.eldhopj.chitchat;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -10,8 +11,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
@@ -19,22 +23,30 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import in.eldhopj.chitchat.Adapters.UserListAdapter;
 import in.eldhopj.chitchat.ModelClass.ListUser;
 import in.eldhopj.chitchat.others.CountryIso2Phone;
 
+import static in.eldhopj.chitchat.others.Common.NAME;
+import static in.eldhopj.chitchat.others.Common.PHONE_NUMBER;
+import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
 import static in.eldhopj.chitchat.others.Common.USERS;
+import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 
 public class FindUserActivity extends AppCompatActivity {
     private static final String TAG = "FindUserActivity";
+    private Toolbar mainToolbar;
 
     private Cursor phones;
     private ProgressDialog progressDialog;
     private RecyclerView mRecyclerView;
     private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat USERS , mContactList ->Contacts in your phone
+    Set<ListUser> hashSet;
     private UserListAdapter mUserListAdapter;
 
     @Override
@@ -44,6 +56,8 @@ public class FindUserActivity extends AppCompatActivity {
 
         mUserList = new ArrayList<>();
         mContactList = new ArrayList<>();
+        hashSet = new HashSet<>();
+
 
         progressDialog = new ProgressDialog(this,
                 R.style.Theme_AppCompat_Light_Dialog_Alert);
@@ -51,10 +65,49 @@ public class FindUserActivity extends AppCompatActivity {
         progressDialog.setCanceledOnTouchOutside(false); // Prevents cancelling of progress bar on touching outside
         progressDialog.setMessage("Loading Users...");
 
+        mainToolbar = findViewById(R.id.toolbar_main);
+        setSupportActionBar(mainToolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("Chit Chat");
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
         initRecyclerView();
         new GetContactList().execute();
 
     }
+
+    // Menu Starts here
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu,menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()){ // get the ID
+            case R.id.action_logout_btn:
+                mAuth.signOut();
+                loginActivityIntent();
+                return true;
+            case R.id.action_settings_btn:
+                Intent intent = new Intent(getApplicationContext(), AccountSettingsActivity.class);
+                startActivity(intent);
+            default:
+                return false;
+
+        }
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
+    }
+    // Menu ends here
 
     /**Fetching all saved contacts from phone*/
     //TODO : Fix this memory leak using weak reference
@@ -123,6 +176,7 @@ public class FindUserActivity extends AppCompatActivity {
                 progressDialog.dismiss();
 
                 if (dataSnapshot.exists()) { // checks whether the db exists
+
                     /*Runs in a background thread
                     Here we want to fetch the data's of numbers only on USERS contact*/
                    new Thread(new Runnable() {
@@ -130,19 +184,25 @@ public class FindUserActivity extends AppCompatActivity {
                        public void run() {
                            String phone;
                            String name;
-                           Log.d(TAG, "run: ");
                            for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                               for (ListUser phoneNum : mContactList) {
-                                   phone = childSnapshot.child("phone").getValue().toString();
+                               // Declare here to make profileImageUrl as null after every iteration
+                               String profileImageUrl = null;
+                               for (ListUser  phoneNum : mContactList) {
+
+                                   phone = childSnapshot.child(PHONE_NUMBER).getValue().toString();
+
+                                   // if the contact number equals to Firebase DB number
                                    if (phone.equals(phoneNum.getPhone())) {
-                                       if (childSnapshot.child("name").getValue() != null) {
-                                           name = childSnapshot.child("name").getValue().toString();// check if it is null or not, if null when we convert into string it will crash
+                                           name = childSnapshot.child(NAME).getValue().toString();
 
-                                           ListUser users = new ListUser(name, phone);
+                                       if (childSnapshot.child(PROFILE_PICS).getValue() != null) // check if it is null or not, if null when we convert into string it will crash
+                                           profileImageUrl = childSnapshot.child(PROFILE_PICS).getValue().toString();
 
-                                           // looks through the mContactList and find the name which have empty string
-                                           // ie, if user didn't give name use the phone contacts name
 
+                                       ListUser  users = new ListUser(name, phone,profileImageUrl);
+
+                                       // looks through the mContactList and find the name which have empty string
+                                       // ie, if user didn't give name use the phone contacts name
                                            if (name.equals("")) {
                                                for (ListUser contact : mContactList) { // Iterate through every contact
                                                    if (contact.getPhone().equals(users.getPhone())) { // If phone number matches
@@ -152,7 +212,7 @@ public class FindUserActivity extends AppCompatActivity {
                                            }
                                            //TODO progress dialog for loading contacts
                                            mUserList.add(users);
-                                       }
+                                           break;
                                    }
                                }
                            }
@@ -176,13 +236,17 @@ public class FindUserActivity extends AppCompatActivity {
         });
     }
 
-
             /**Initializing recycler view*/
             private void initRecyclerView() {
                 mRecyclerView = findViewById(R.id.userList);
                 mRecyclerView.setHasFixedSize(true); // setting it to true allows some optimization to our view , avoiding validations when mUserListAdapter content changes
 
                 mRecyclerView.setLayoutManager(new LinearLayoutManager(this)); //it can be GridLayoutManager or StaggeredGridLayoutManager
+
+
+                hashSet.addAll(mUserList);
+                mUserList.clear();
+                mUserList.addAll(hashSet);
 
                 //set the mUserListAdapter to the recycler view
                 mUserListAdapter = new UserListAdapter(mUserList, this);
@@ -203,4 +267,11 @@ public class FindUserActivity extends AppCompatActivity {
                 return CountryIso2Phone.getPhone(iso);
             }
 
-        }
+    private void loginActivityIntent(){
+        Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // To clean up all activities
+        startActivity(intent);
+        finish();
+        return;
+    }
+}

@@ -8,8 +8,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.List;
 
+import de.hdodenhof.circleimageview.CircleImageView;
 import in.eldhopj.chitchat.ModelClass.ListUser;
 import in.eldhopj.chitchat.R;
 
@@ -51,6 +54,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         ListUser listitem = mListItems.get(position);
         holder.nameTv.setText(listitem.getName());
         holder.phoneTv.setText(listitem.getPhone());
+
+        if (listitem.getProfileImageUrl() != null)
+        Picasso.get().load(listitem.getProfileImageUrl()).into(holder.profilePic);
     }
 
     @Override
@@ -66,6 +72,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         //Define viewHolder views (list_item) here
         TextView nameTv;
         TextView phoneTv;
+        CircleImageView profilePic;
 
         //create a constructor with itemView as a params
         ViewHolder(View itemView) { // with the help of "itemView" we ge the views from xml
@@ -73,6 +80,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             //bind views
             nameTv = itemView.findViewById(R.id.name);
             phoneTv = itemView.findViewById(R.id.phoneNo);
+            profilePic = itemView.findViewById(R.id.profilePic);
 
             //Assigning on click listener on the item
             itemView.setOnClickListener(new View.OnClickListener() { // we can handle the click as like we do in normal

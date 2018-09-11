@@ -18,7 +18,12 @@ public class Common extends Application {
     public static StorageReference storageRootReference;
 
     public static final String USERS = "users";
-    public static final String PROFILE_PICS = "profile_pics";
+        public static final String PHONE_NUMBER = "phoneNum";
+        public static final String PROFILE_PICS = "profile_pics";
+        public static final String NAME = "name";
+        public static final String STATUS ="status";
+        public static final String LAST_SEEN = "lastSeen";
+
     @Override
     public void onCreate() {
         super.onCreate();
