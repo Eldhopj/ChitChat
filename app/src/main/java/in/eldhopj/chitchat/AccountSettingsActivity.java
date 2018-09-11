@@ -2,6 +2,7 @@ package in.eldhopj.chitchat;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -27,13 +28,18 @@ import com.squareup.picasso.Picasso;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import id.zelory.compressor.Compressor;
 
 import static in.eldhopj.chitchat.others.Common.NAME;
 import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
 import static in.eldhopj.chitchat.others.Common.STATUS;
+import static in.eldhopj.chitchat.others.Common.THUMBNAIL;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.rootReference;
@@ -90,10 +96,9 @@ public class AccountSettingsActivity extends AppCompatActivity {
                     String name = dataSnapshot.child(NAME).getValue().toString();
                     String status = dataSnapshot.child(STATUS).getValue().toString();
                     String profileImage;
-                    if (dataSnapshot.child(PROFILE_PICS).getValue() != null) {
-                        // If the Db contains a URL load that url into imageView
-                        profileImage = dataSnapshot.child(PROFILE_PICS).getValue().toString();
-                        Picasso.get().load(profileImage).into(profilePic);
+                    if (dataSnapshot.child(THUMBNAIL).getValue() != null) {// If the Db contains a URL load that url into imageView
+                        profileImage = dataSnapshot.child(THUMBNAIL).getValue().toString();
+                        Picasso.get().load(profileImage).placeholder(R.drawable.profilepic).into(profilePic);
                     }
                     nameTIL.getEditText().setText(name);
                     statusTIL.getEditText().setText(status);
@@ -154,10 +159,7 @@ public class AccountSettingsActivity extends AppCompatActivity {
                 }
             }
         });
-
-
     }
-
 
     public void skip(View view) {
         mainActivityIntent();
@@ -183,12 +185,17 @@ public class AccountSettingsActivity extends AppCompatActivity {
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
             CropImage.ActivityResult result = CropImage.getActivityResult(data);
             if (resultCode == RESULT_OK) {
-                Uri resultUri = result.getUri();
+                final Uri resultUri = result.getUri();
 
                 profilePic.setImageURI(resultUri);
 
-                /**Uploading pic into firebase DB*/
+                /**Uploading pics into firebase DB*/
+                //Uploading original pic
                 final StorageReference profilePicUpload = storageRootReference.child(PROFILE_PICS).child(uID+".jpg");
+
+                //Uploading Thumbnail
+                final StorageReference thumbnailUpload = storageRootReference.child(THUMBNAIL).child(uID+".webp");
+
                 progressDialog.setMessage("Uploading...");
                 progressDialog.show();
                 profilePicUpload.putFile(resultUri) //Give the image URI
@@ -207,24 +214,57 @@ public class AccountSettingsActivity extends AppCompatActivity {
                                                String profileImageUrl = task.getResult().toString();
 
                                                //After getting the URL update the URL in firebase DB
-                                               HashMap<String, Object> settings = new HashMap<>();
-                                               settings.put(PROFILE_PICS, profileImageUrl);
+                                               HashMap<String, Object> profileImage = new HashMap<>();
+                                               profileImage.put(PROFILE_PICS, profileImageUrl);
 
-                                               mUserDb.updateChildren(settings).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                               mUserDb.updateChildren(profileImage).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                    @Override
                                                    public void onComplete(@NonNull Task<Void> task) {
                                                        progressDialog.dismiss();
                                                        Toast.makeText(AccountSettingsActivity.this, "Profile Pic Updated", Toast.LENGTH_SHORT).show();
                                                    }
                                                });
+
+                                               /*Thumbnail upload to Db*/
+
+                                               thumbnailUpload.putBytes(convertingBitmapArray(resultUri)) //passing Bitmap byte array
+                                                       .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                                                   @Override
+                                                   public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                                                       if (task.isSuccessful()){
+                                                           thumbnailUpload.getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                                               @Override
+                                                               public void onComplete(@NonNull Task<Uri> task) {
+                                                                   if (task.isSuccessful()){
+                                                                       String thumbnailUrl = task.getResult().toString(); // URL of thumb image
+
+                                                                       //After getting the URL update the URL in firebase DB
+                                                                       HashMap<String, Object> thumbnailImage = new HashMap<>();
+                                                                       thumbnailImage.put(THUMBNAIL, thumbnailUrl);
+
+                                                                       mUserDb.updateChildren(thumbnailImage).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                           @Override
+                                                                           public void onComplete(@NonNull Task<Void> task) {
+                                                                               progressDialog.dismiss();
+                                                                               Toast.makeText(AccountSettingsActivity.this, "Profile Pic Updated", Toast.LENGTH_SHORT).show();
+                                                                           }
+                                                                       });
+                                                                   }
+                                                               }
+                                                           });
+                                                       }
+                                                   }
+                                               });
                                            }
                                            else {
                                                Toast.makeText(AccountSettingsActivity.this, "Please Try Again Later", Toast.LENGTH_SHORT).show();
+                                               progressDialog.dismiss();
                                            }
                                        }
                                    });
                                 }else{
                                     Toast.makeText(AccountSettingsActivity.this, "Please Try Again Later", Toast.LENGTH_SHORT).show();
+                                    progressDialog.dismiss();
                                 }
                             }
                         });
@@ -235,6 +275,31 @@ public class AccountSettingsActivity extends AppCompatActivity {
                 Toast.makeText(this, error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    /**For compressing the image*/
+    private Bitmap creatingThumbnail(Uri actualImageUri){
+        File actualImage = new File(actualImageUri.getPath()); // getting the file path from Uri
+        Bitmap compressedImage = null;
+        try {
+            compressedImage = new Compressor(this)
+                    .setMaxWidth(140)
+                    .setMaxHeight(140)
+                    .setQuality(60)
+                    .setCompressFormat(Bitmap.CompressFormat.WEBP)
+                    .compressToBitmap(actualImage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return compressedImage;
+    }
+
+    private  byte[] convertingBitmapArray(Uri resultUri){
+        Bitmap thumbnail = creatingThumbnail(resultUri);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        thumbnail.compress(Bitmap.CompressFormat.WEBP, 100, baos);
+        byte[] thumbnailByte = baos.toByteArray();
+        return thumbnailByte;
     }
 
     private void loginActivityIntent(){

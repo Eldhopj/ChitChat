@@ -19,10 +19,13 @@ public class Common extends Application {
 
     public static final String USERS = "users";
         public static final String PHONE_NUMBER = "phoneNum";
-        public static final String PROFILE_PICS = "profile_pics";
         public static final String NAME = "name";
         public static final String STATUS ="status";
         public static final String LAST_SEEN = "lastSeen";
+
+        //Common for both Storage and the DB for saving the download link in db
+    public static final String PROFILE_PICS = "profile_pics";
+    public static final String THUMBNAIL = "thumbnail";
 
     @Override
     public void onCreate() {

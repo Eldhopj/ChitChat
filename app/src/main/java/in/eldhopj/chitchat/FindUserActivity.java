@@ -23,9 +23,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import in.eldhopj.chitchat.Adapters.UserListAdapter;
 import in.eldhopj.chitchat.ModelClass.ListUser;
@@ -33,7 +31,7 @@ import in.eldhopj.chitchat.others.CountryIso2Phone;
 
 import static in.eldhopj.chitchat.others.Common.NAME;
 import static in.eldhopj.chitchat.others.Common.PHONE_NUMBER;
-import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
+import static in.eldhopj.chitchat.others.Common.THUMBNAIL;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.rootReference;
@@ -46,7 +44,6 @@ public class FindUserActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
     private RecyclerView mRecyclerView;
     private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat USERS , mContactList ->Contacts in your phone
-    Set<ListUser> hashSet;
     private UserListAdapter mUserListAdapter;
 
     @Override
@@ -56,7 +53,6 @@ public class FindUserActivity extends AppCompatActivity {
 
         mUserList = new ArrayList<>();
         mContactList = new ArrayList<>();
-        hashSet = new HashSet<>();
 
 
         progressDialog = new ProgressDialog(this,
@@ -185,8 +181,8 @@ public class FindUserActivity extends AppCompatActivity {
                            String phone;
                            String name;
                            for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                               // Declare here to make profileImageUrl as null after every iteration
-                               String profileImageUrl = null;
+                               // Declare here to make thumbImageUrl as null after every iteration
+                               String thumbImageUrl = null;
                                for (ListUser  phoneNum : mContactList) {
 
                                    phone = childSnapshot.child(PHONE_NUMBER).getValue().toString();
@@ -195,11 +191,11 @@ public class FindUserActivity extends AppCompatActivity {
                                    if (phone.equals(phoneNum.getPhone())) {
                                            name = childSnapshot.child(NAME).getValue().toString();
 
-                                       if (childSnapshot.child(PROFILE_PICS).getValue() != null) // check if it is null or not, if null when we convert into string it will crash
-                                           profileImageUrl = childSnapshot.child(PROFILE_PICS).getValue().toString();
+                                       if (childSnapshot.child(THUMBNAIL).getValue() != null) // check if it is null or not, if null when we convert into string it will crash
+                                           thumbImageUrl = childSnapshot.child(THUMBNAIL).getValue().toString();
 
 
-                                       ListUser  users = new ListUser(name, phone,profileImageUrl);
+                                       ListUser  users = new ListUser(name, phone,thumbImageUrl);
 
                                        // looks through the mContactList and find the name which have empty string
                                        // ie, if user didn't give name use the phone contacts name
@@ -215,13 +211,13 @@ public class FindUserActivity extends AppCompatActivity {
                                            break;
                                    }
                                }
+                               runOnUiThread(new Runnable() {
+                                   @Override
+                                   public void run() {
+                                       mUserListAdapter.notifyDataSetChanged(); //Telling adapter something has been changed and update it
+                                   }
+                               });
                            }
-                           runOnUiThread(new Runnable() {
-                               @Override
-                               public void run() {
-                                   mUserListAdapter.notifyDataSetChanged(); //Telling adapter something has been changed and update it
-                               }
-                           });
                        }
                    }).start();
                 }
@@ -242,11 +238,6 @@ public class FindUserActivity extends AppCompatActivity {
                 mRecyclerView.setHasFixedSize(true); // setting it to true allows some optimization to our view , avoiding validations when mUserListAdapter content changes
 
                 mRecyclerView.setLayoutManager(new LinearLayoutManager(this)); //it can be GridLayoutManager or StaggeredGridLayoutManager
-
-
-                hashSet.addAll(mUserList);
-                mUserList.clear();
-                mUserList.addAll(hashSet);
 
                 //set the mUserListAdapter to the recycler view
                 mUserListAdapter = new UserListAdapter(mUserList, this);

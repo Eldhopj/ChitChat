@@ -55,8 +55,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         holder.nameTv.setText(listitem.getName());
         holder.phoneTv.setText(listitem.getPhone());
 
-        if (listitem.getProfileImageUrl() != null)
-        Picasso.get().load(listitem.getProfileImageUrl()).into(holder.profilePic);
+        if (listitem.getThumbImageUrl() != null)
+        Picasso.get().load(listitem.getThumbImageUrl()).placeholder(R.drawable.profilepic)
+                .into(holder.profilePic);
     }
 
     @Override
