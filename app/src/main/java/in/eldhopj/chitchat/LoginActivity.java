@@ -22,7 +22,6 @@ import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.hbb20.CountryCodePicker;
 
@@ -33,6 +32,7 @@ import in.eldhopj.chitchat.ModelClass.AccountSettings;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.firebaseUser;
 import static in.eldhopj.chitchat.others.Common.mAuth;
+import static in.eldhopj.chitchat.others.Common.mUserDb;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 import static in.eldhopj.chitchat.others.Common.uID;
 
@@ -148,16 +148,16 @@ public class LoginActivity extends AppCompatActivity {
                     firebaseUser =  mAuth.getCurrentUser();
                     if (firebaseUser != null){
                         uID = firebaseUser.getUid();
-                        final DatabaseReference mUserDB = rootReference.child(USERS).child(uID);
+                        mUserDb = rootReference.child(USERS).child(uID);
                         /*Listener to fetches the value
                         * addListenerForSingleValueEvent wont lesson continuously , it only lessons once*/
-                        mUserDB.addListenerForSingleValueEvent(new ValueEventListener() {
+                        mUserDb.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
                                     //@params name , PHONE_NUMBER
-                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null,"");
-                                    mUserDB.setValue(userData);
+                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null,"",true);
+                                    mUserDb.setValue(userData);
                                 }
                                 settingsActivityIntent();
                             }

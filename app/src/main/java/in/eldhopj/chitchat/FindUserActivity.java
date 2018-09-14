@@ -16,6 +16,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
@@ -26,14 +27,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import in.eldhopj.chitchat.Adapters.UserListAdapter;
-import in.eldhopj.chitchat.ModelClass.ListUser;
+import in.eldhopj.chitchat.ModelClass.AccountSettings;
+import in.eldhopj.chitchat.ModelClass.PhoneContacts;
 import in.eldhopj.chitchat.others.CountryIso2Phone;
 
+import static in.eldhopj.chitchat.others.Common.LAST_SEEN;
 import static in.eldhopj.chitchat.others.Common.NAME;
+import static in.eldhopj.chitchat.others.Common.ONLINE;
 import static in.eldhopj.chitchat.others.Common.PHONE_NUMBER;
+import static in.eldhopj.chitchat.others.Common.PROFILE_ITEMS;
+import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
+import static in.eldhopj.chitchat.others.Common.STATUS;
 import static in.eldhopj.chitchat.others.Common.THUMBNAIL;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
+import static in.eldhopj.chitchat.others.Common.mUserDb;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 
 public class FindUserActivity extends AppCompatActivity {
@@ -43,7 +51,8 @@ public class FindUserActivity extends AppCompatActivity {
     private Cursor phones;
     private ProgressDialog progressDialog;
     private RecyclerView mRecyclerView;
-    private List<ListUser> mUserList, mContactList; // mUserList -> ChitChat USERS , mContactList ->Contacts in your phone
+    private List<PhoneContacts> mContactList; // mContactList ->Contacts in your phone
+    private List<AccountSettings> mUserList; // mUserList -> ChitChat USERS
     private UserListAdapter mUserListAdapter;
 
     @Override
@@ -72,6 +81,26 @@ public class FindUserActivity extends AppCompatActivity {
         initRecyclerView();
         new GetContactList().execute();
 
+        mUserListAdapter.setOnItemClickListener(new UserListAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Intent detailedProfile = new Intent(getApplicationContext(), ProfileActivity.class);
+                detailedProfile.putExtra(PROFILE_ITEMS,mUserList.get(position)); // Passing the position of the clicked item
+                startActivity(detailedProfile);
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mUserDb.child(ONLINE).setValue(true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mUserDb.child(ONLINE).setValue(false);
     }
 
     // Menu Starts here
@@ -86,6 +115,7 @@ public class FindUserActivity extends AppCompatActivity {
 
         switch (item.getItemId()){ // get the ID
             case R.id.action_logout_btn:
+                mUserDb.child(ONLINE).setValue(false);
                 mAuth.signOut();
                 loginActivityIntent();
                 return true;
@@ -107,7 +137,7 @@ public class FindUserActivity extends AppCompatActivity {
 
     /**Fetching all saved contacts from phone*/
     //TODO : Fix this memory leak using weak reference
-    private class GetContactList extends AsyncTask<Void, Void, List<ListUser>> {
+    private class GetContactList extends AsyncTask<Void, Void, List<PhoneContacts>> {
 
         @Override
         protected void onPreExecute() {
@@ -117,7 +147,7 @@ public class FindUserActivity extends AppCompatActivity {
         }
 
         @Override
-        protected List<ListUser> doInBackground(Void... voids) {
+        protected List<PhoneContacts> doInBackground(Void... voids) {
             Log.d(TAG, "doInBackground: ");
             if (phones != null) {
                 while (phones.moveToNext()){ //Get contacts until when cursor cant move to next
@@ -127,7 +157,7 @@ public class FindUserActivity extends AppCompatActivity {
 
                     phone = normalizingNumber(phone);
 
-                    ListUser list = new ListUser(name,phone);
+                    PhoneContacts list = new PhoneContacts(name,phone);
                     mContactList.add(list);
                 }
                 phones.close();
@@ -136,8 +166,8 @@ public class FindUserActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(List<ListUser> listUsers) {
-            super.onPostExecute(listUsers);
+        protected void onPostExecute(List<PhoneContacts> phoneContacts) {
+            super.onPostExecute(phoneContacts);
             Log.d(TAG, "onPostExecute: ");
             fetchUsers(mContactList);
         }
@@ -162,7 +192,7 @@ public class FindUserActivity extends AppCompatActivity {
     }
 
     /**Get USERS from Firebase who are in phones contact */
-    private void fetchUsers(final List<ListUser> mContactList) {
+    private void fetchUsers(final List<PhoneContacts> mContactList) {
         Log.d(TAG, "fetchUsers: ");
 
         rootReference.child(USERS).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -183,25 +213,38 @@ public class FindUserActivity extends AppCompatActivity {
                            for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                                // Declare here to make thumbImageUrl as null after every iteration
                                String thumbImageUrl = null;
-                               for (ListUser  phoneNum : mContactList) {
+                               String status = null;
+                               String profilePic = null;
+                               String lastSeen = null;
+                               Boolean online=false;
+                               for (PhoneContacts phoneNum : mContactList) {
 
                                    phone = childSnapshot.child(PHONE_NUMBER).getValue().toString();
 
                                    // if the contact number equals to Firebase DB number
                                    if (phone.equals(phoneNum.getPhone())) {
+                                       Log.d(TAG, "User firebase ID " + childSnapshot.getRef().getKey());
+                                       //Saving user data's into modelClass
                                            name = childSnapshot.child(NAME).getValue().toString();
-
-                                       if (childSnapshot.child(THUMBNAIL).getValue() != null) // check if it is null or not, if null when we convert into string it will crash
+                                       if (childSnapshot.hasChild(ONLINE))
+                                           online = (Boolean) childSnapshot.child(ONLINE).getValue();
+                                       Log.d(TAG, "Online : " +  online);
+                                       if (childSnapshot.hasChild(THUMBNAIL)) //checks if it has a child name thumbnail or not
                                            thumbImageUrl = childSnapshot.child(THUMBNAIL).getValue().toString();
+                                       if (childSnapshot.hasChild(STATUS))
+                                           status = childSnapshot.child(STATUS).getValue().toString();
+                                       if (childSnapshot.hasChild(PROFILE_PICS)) // check if it is null or not, if null when we convert into string it will crash
+                                           profilePic = childSnapshot.child(PROFILE_PICS).getValue().toString();
+                                       if (childSnapshot.hasChild(LAST_SEEN)) // check if it is null or not, if null when we convert into string it will crash
+                                           lastSeen = childSnapshot.child(LAST_SEEN).getValue().toString();
 
-
-                                       ListUser  users = new ListUser(name, phone,thumbImageUrl);
+                                       AccountSettings  users = new AccountSettings(name,status,phone,profilePic,thumbImageUrl,lastSeen,online);
 
                                        // looks through the mContactList and find the name which have empty string
                                        // ie, if user didn't give name use the phone contacts name
                                            if (name.equals("")) {
-                                               for (ListUser contact : mContactList) { // Iterate through every contact
-                                                   if (contact.getPhone().equals(users.getPhone())) { // If phone number matches
+                                               for (PhoneContacts contact : mContactList) { // Iterate through every contact
+                                                   if (contact.getPhone().equals(users.getPhoneNum())) { // If phone number matches
                                                        users.setName(contact.getName());
                                                    }
                                                }

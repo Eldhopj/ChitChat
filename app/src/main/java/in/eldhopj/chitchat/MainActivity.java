@@ -18,8 +18,10 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
 
+import static in.eldhopj.chitchat.others.Common.ONLINE;
 import static in.eldhopj.chitchat.others.Common.firebaseUser;
 import static in.eldhopj.chitchat.others.Common.mAuth;
+import static in.eldhopj.chitchat.others.Common.mUserDb;
 
 /**Commit 1:
  *          Phone auth using Firebase
@@ -56,13 +58,23 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
+    //TODO : Bug :  showing offline from mainActivity
     @Override
     protected void onStart() {
 //        Log.d(TAG, "onStart: "+firebaseUser.getUid());
-        if(firebaseUser == null){
+        if(firebaseUser == null) {
             loginActivityIntent();
         }
+        else
+            mUserDb.child(ONLINE).setValue(true);
         super.onStart();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mUserDb.child(ONLINE).setValue(false);
     }
 
 
@@ -78,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         switch (item.getItemId()){ // get the ID
             case R.id.action_logout_btn:
+                mUserDb.child(ONLINE).setValue(false);
                 mAuth.signOut();
                 loginActivityIntent();
                 return true;

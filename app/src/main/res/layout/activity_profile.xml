@@ -45,7 +45,7 @@
         app:layout_constraintTop_toBottomOf="@+id/displayName" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/lastSeen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"

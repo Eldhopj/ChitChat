@@ -6,6 +6,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -13,18 +14,18 @@ import com.squareup.picasso.Picasso;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import in.eldhopj.chitchat.ModelClass.ListUser;
+import in.eldhopj.chitchat.ModelClass.AccountSettings;
 import in.eldhopj.chitchat.R;
 
 public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHolder> { //UserListAdapter
 
 
-    private List<ListUser> mListItems; // List
+    private List<AccountSettings> mListItems; // List
     private Context mContext;
     private OnItemClickListener mListener; // Listener for the OnItemClickListener interface
 
     //constructor
-    public UserListAdapter(List<ListUser> listItems, Context context) { // constructor
+    public UserListAdapter(List<AccountSettings> listItems, Context context) { // constructor
         this.mListItems = listItems;
         this.mContext = context;
     }
@@ -51,13 +52,17 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {//populate the data into the list_item (View Holder), as we scroll
         //Binding data to the list_item
-        ListUser listitem = mListItems.get(position);
-        holder.nameTv.setText(listitem.getName());
-        holder.phoneTv.setText(listitem.getPhone());
+        AccountSettings listItem = mListItems.get(position);
+        holder.nameTv.setText(listItem.getName());
+        holder.phoneTv.setText(listItem.getPhoneNum());
 
-        if (listitem.getThumbImageUrl() != null)
-        Picasso.get().load(listitem.getThumbImageUrl()).placeholder(R.drawable.profilepic)
-                .into(holder.profilePic);
+        if (listItem.getThumbnail() != null)
+            Picasso.get().load(listItem.getThumbnail()).placeholder(R.drawable.profilepic)
+                    .into(holder.profilePic);
+        if (listItem.getOnline())
+            holder.onlineStatus.setVisibility(View.VISIBLE);
+        else
+            holder.onlineStatus.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -74,6 +79,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         TextView nameTv;
         TextView phoneTv;
         CircleImageView profilePic;
+        ImageView onlineStatus;
 
         //create a constructor with itemView as a params
         ViewHolder(View itemView) { // with the help of "itemView" we ge the views from xml
@@ -82,6 +88,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             nameTv = itemView.findViewById(R.id.name);
             phoneTv = itemView.findViewById(R.id.phoneNo);
             profilePic = itemView.findViewById(R.id.profilePic);
+            onlineStatus = itemView.findViewById(R.id.onlineStatus);
 
             //Assigning on click listener on the item
             itemView.setOnClickListener(new View.OnClickListener() { // we can handle the click as like we do in normal

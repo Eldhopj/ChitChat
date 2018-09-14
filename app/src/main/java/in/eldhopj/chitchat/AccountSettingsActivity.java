@@ -24,6 +24,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Callback;
+import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
@@ -37,11 +39,13 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import id.zelory.compressor.Compressor;
 
 import static in.eldhopj.chitchat.others.Common.NAME;
+import static in.eldhopj.chitchat.others.Common.ONLINE;
 import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
 import static in.eldhopj.chitchat.others.Common.STATUS;
 import static in.eldhopj.chitchat.others.Common.THUMBNAIL;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
+import static in.eldhopj.chitchat.others.Common.mUserDb;
 import static in.eldhopj.chitchat.others.Common.rootReference;
 import static in.eldhopj.chitchat.others.Common.storageRootReference;
 import static in.eldhopj.chitchat.others.Common.uID;
@@ -52,7 +56,6 @@ public class AccountSettingsActivity extends AppCompatActivity {
     boolean enableToolbar=true;
     private TextInputLayout nameTIL,statusTIL;
     private ProgressDialog progressDialog;
-    private DatabaseReference mUserDb;
 
     CircleImageView profilePic;
 
@@ -86,8 +89,7 @@ public class AccountSettingsActivity extends AppCompatActivity {
         progressDialog.setCanceledOnTouchOutside(false); // Prevents cancelling of progress bar on touching outside
 
 
-        mUserDb = rootReference.child(USERS).child(uID);
-
+        mUserDb.keepSynced(true);
         mUserDb.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -95,10 +97,20 @@ public class AccountSettingsActivity extends AppCompatActivity {
 
                     String name = dataSnapshot.child(NAME).getValue().toString();
                     String status = dataSnapshot.child(STATUS).getValue().toString();
-                    String profileImage;
+                    final String profileImage;
                     if (dataSnapshot.child(THUMBNAIL).getValue() != null) {// If the Db contains a URL load that url into imageView
                         profileImage = dataSnapshot.child(THUMBNAIL).getValue().toString();
-                        Picasso.get().load(profileImage).placeholder(R.drawable.profilepic).into(profilePic);
+                        Picasso.get().load(profileImage)
+                                .networkPolicy(NetworkPolicy.OFFLINE) // Making offline
+                                .placeholder(R.drawable.profilepic).into(profilePic,
+                                new Callback() { //checking the loading image is success or not if not success load from URL
+                            @Override
+                            public void onSuccess() { }
+                            @Override
+                            public void onError(Exception e) {
+                                Picasso.get().load(profileImage).placeholder(R.drawable.profilepic).into(profilePic);
+                            }
+                        });
                     }
                     nameTIL.getEditText().setText(name);
                     statusTIL.getEditText().setText(status);
@@ -111,6 +123,18 @@ public class AccountSettingsActivity extends AppCompatActivity {
                 Toast.makeText(AccountSettingsActivity.this, databaseError.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mUserDb.child(ONLINE).setValue(true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mUserDb.child(ONLINE).setValue(false);
     }
 
     // Menu Starts here
@@ -128,6 +152,7 @@ public class AccountSettingsActivity extends AppCompatActivity {
                 NavUtils.navigateUpFromSameTask(this);
                 return true;
             case R.id.action_logout_btn:
+                mUserDb.child(ONLINE).setValue(false);
                 mAuth.signOut();
                 loginActivityIntent();
                 return true;
@@ -193,9 +218,6 @@ public class AccountSettingsActivity extends AppCompatActivity {
                 //Uploading original pic
                 final StorageReference profilePicUpload = storageRootReference.child(PROFILE_PICS).child(uID+".jpg");
 
-                //Uploading Thumbnail
-                final StorageReference thumbnailUpload = storageRootReference.child(THUMBNAIL).child(uID+".webp");
-
                 progressDialog.setMessage("Uploading...");
                 progressDialog.show();
                 profilePicUpload.putFile(resultUri) //Give the image URI
@@ -226,35 +248,7 @@ public class AccountSettingsActivity extends AppCompatActivity {
                                                });
 
                                                /*Thumbnail upload to Db*/
-
-                                               thumbnailUpload.putBytes(convertingBitmapArray(resultUri)) //passing Bitmap byte array
-                                                       .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
-                                                   @Override
-                                                   public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                                                       if (task.isSuccessful()){
-                                                           thumbnailUpload.getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
-                                                               @Override
-                                                               public void onComplete(@NonNull Task<Uri> task) {
-                                                                   if (task.isSuccessful()){
-                                                                       String thumbnailUrl = task.getResult().toString(); // URL of thumb image
-
-                                                                       //After getting the URL update the URL in firebase DB
-                                                                       HashMap<String, Object> thumbnailImage = new HashMap<>();
-                                                                       thumbnailImage.put(THUMBNAIL, thumbnailUrl);
-
-                                                                       mUserDb.updateChildren(thumbnailImage).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                                           @Override
-                                                                           public void onComplete(@NonNull Task<Void> task) {
-                                                                               progressDialog.dismiss();
-                                                                               Toast.makeText(AccountSettingsActivity.this, "Profile Pic Updated", Toast.LENGTH_SHORT).show();
-                                                                           }
-                                                                       });
-                                                                   }
-                                                               }
-                                                           });
-                                                       }
-                                                   }
-                                               });
+                                               uploadThumbnail(resultUri);
                                            }
                                            else {
                                                Toast.makeText(AccountSettingsActivity.this, "Please Try Again Later", Toast.LENGTH_SHORT).show();
@@ -300,6 +294,39 @@ public class AccountSettingsActivity extends AppCompatActivity {
         thumbnail.compress(Bitmap.CompressFormat.WEBP, 100, baos);
         byte[] thumbnailByte = baos.toByteArray();
         return thumbnailByte;
+    }
+
+    private void uploadThumbnail(Uri resultUri){
+        //Uploading Thumbnail
+        final StorageReference thumbnailUpload = storageRootReference.child(THUMBNAIL).child(uID+".webp");
+        thumbnailUpload.putBytes(convertingBitmapArray(resultUri)) //passing Bitmap byte array
+                .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                        if (task.isSuccessful()){
+                            thumbnailUpload.getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Uri> task) {
+                                    if (task.isSuccessful()){
+                                        String thumbnailUrl = task.getResult().toString(); // URL of thumb image
+
+                                        //After getting the URL update the URL in firebase DB
+                                        HashMap<String, Object> thumbnailImage = new HashMap<>();
+                                        thumbnailImage.put(THUMBNAIL, thumbnailUrl);
+
+                                        mUserDb.updateChildren(thumbnailImage).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                progressDialog.dismiss();
+                                                Toast.makeText(AccountSettingsActivity.this, "Profile Pic Updated", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
     }
 
     private void loginActivityIntent(){
