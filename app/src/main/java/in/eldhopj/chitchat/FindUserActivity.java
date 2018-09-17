@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import in.eldhopj.chitchat.ModelClass.AccountSettings;
 import in.eldhopj.chitchat.ModelClass.PhoneContacts;
 import in.eldhopj.chitchat.others.CountryIso2Phone;
 
+import static in.eldhopj.chitchat.others.Common.CONVERSATION;
 import static in.eldhopj.chitchat.others.Common.LAST_SEEN;
 import static in.eldhopj.chitchat.others.Common.NAME;
 import static in.eldhopj.chitchat.others.Common.ONLINE;
@@ -84,6 +86,13 @@ public class FindUserActivity extends AppCompatActivity {
         mUserListAdapter.setOnItemClickListener(new UserListAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
+                Intent conversation = new Intent(getApplicationContext(), ConversationActivity.class);
+                conversation.putExtra(CONVERSATION,mUserList.get(position)); // Passing the position of the clicked item
+                startActivity(conversation);
+            }
+
+            @Override
+            public void onInfoClick(View view, int position) {
                 Intent detailedProfile = new Intent(getApplicationContext(), ProfileActivity.class);
                 detailedProfile.putExtra(PROFILE_ITEMS,mUserList.get(position)); // Passing the position of the clicked item
                 startActivity(detailedProfile);
@@ -101,6 +110,7 @@ public class FindUserActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mUserDb.child(ONLINE).setValue(false);
+        mUserDb.child(LAST_SEEN).setValue(ServerValue.TIMESTAMP);
     }
 
     // Menu Starts here
@@ -210,6 +220,7 @@ public class FindUserActivity extends AppCompatActivity {
                        public void run() {
                            String phone;
                            String name;
+                           String userId;
                            for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                                // Declare here to make thumbImageUrl as null after every iteration
                                String thumbImageUrl = null;
@@ -220,12 +231,12 @@ public class FindUserActivity extends AppCompatActivity {
                                for (PhoneContacts phoneNum : mContactList) {
 
                                    phone = childSnapshot.child(PHONE_NUMBER).getValue().toString();
-
                                    // if the contact number equals to Firebase DB number
                                    if (phone.equals(phoneNum.getPhone())) {
-                                       Log.d(TAG, "User firebase ID " + childSnapshot.getRef().getKey());
+                                      //TODO : change green into orange if user last seen is less than 15 mins
                                        //Saving user data's into modelClass
                                            name = childSnapshot.child(NAME).getValue().toString();
+                                           userId = childSnapshot.getRef().getKey();
                                        if (childSnapshot.hasChild(ONLINE))
                                            online = (Boolean) childSnapshot.child(ONLINE).getValue();
                                        Log.d(TAG, "Online : " +  online);
@@ -238,7 +249,7 @@ public class FindUserActivity extends AppCompatActivity {
                                        if (childSnapshot.hasChild(LAST_SEEN)) // check if it is null or not, if null when we convert into string it will crash
                                            lastSeen = childSnapshot.child(LAST_SEEN).getValue().toString();
 
-                                       AccountSettings  users = new AccountSettings(name,status,phone,profilePic,thumbImageUrl,lastSeen,online);
+                                       AccountSettings  users = new AccountSettings(name,status,phone,profilePic,thumbImageUrl,lastSeen,online,userId);
 
                                        // looks through the mContactList and find the name which have empty string
                                        // ie, if user didn't give name use the phone contacts name

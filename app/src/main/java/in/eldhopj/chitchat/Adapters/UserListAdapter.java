@@ -35,6 +35,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
      */
     public interface OnItemClickListener {
         void onItemClick(View view, int position);
+        void onInfoClick(View view, int position);
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -60,9 +61,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             Picasso.get().load(listItem.getThumbnail()).placeholder(R.drawable.profilepic)
                     .into(holder.profilePic);
         if (listItem.getOnline())
-            holder.onlineStatus.setVisibility(View.VISIBLE);
+            holder.onlineStatusIv.setVisibility(View.VISIBLE);
         else
-            holder.onlineStatus.setVisibility(View.INVISIBLE);
+            holder.onlineStatusIv.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -79,7 +80,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         TextView nameTv;
         TextView phoneTv;
         CircleImageView profilePic;
-        ImageView onlineStatus;
+        ImageView onlineStatusIv,infoIv;
 
         //create a constructor with itemView as a params
         ViewHolder(View itemView) { // with the help of "itemView" we ge the views from xml
@@ -88,7 +89,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             nameTv = itemView.findViewById(R.id.name);
             phoneTv = itemView.findViewById(R.id.phoneNo);
             profilePic = itemView.findViewById(R.id.profilePic);
-            onlineStatus = itemView.findViewById(R.id.onlineStatus);
+            onlineStatusIv = itemView.findViewById(R.id.onlineStatus);
+            infoIv = itemView.findViewById(R.id.info);
+
 
             //Assigning on click listener on the item
             itemView.setOnClickListener(new View.OnClickListener() { // we can handle the click as like we do in normal
@@ -101,6 +104,18 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                         }
                     }
 
+                }
+            });
+
+            infoIv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mListener != null) {
+                        int position = getAdapterPosition(); // Get the index of the view holder
+                        if (position != RecyclerView.NO_POSITION) { // Makes sure this position is still valid
+                            mListener.onInfoClick(v,position); // we catch the click on the item view then pass it over the interface and then to our activity
+                        }
+                    }
                 }
             });
         }

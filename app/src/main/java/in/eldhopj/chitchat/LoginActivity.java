@@ -52,7 +52,7 @@ public class LoginActivity extends AppCompatActivity {
 
         phoneNumberTIL = findViewById(R.id.phoneNoTIL);
         codeTIL = findViewById(R.id.codeTIL);
-        mSend = findViewById(R.id.send);
+        mSend = findViewById(R.id.sendMessage);
 
 
         /**Checks if the user enters correct code or not*/

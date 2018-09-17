@@ -2,9 +2,8 @@ package in.eldhopj.chitchat.ModelClass;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.util.Log;
 
-public class AccountSettings implements Parcelable{
+public class AccountSettings implements Parcelable {
     private static final String TAG = "AccountSettings";
     private String name;
     private String status;
@@ -13,6 +12,11 @@ public class AccountSettings implements Parcelable{
     private String thumbnail;
     private String lastSeen;
     private Boolean online;
+    private String userId;
+
+    public AccountSettings() {
+
+    }
 
     public AccountSettings(String name, String status, String phoneNum, String profilePic, String thumbnail, String lastSeen, Boolean online) {
         this.name = name;
@@ -22,63 +26,53 @@ public class AccountSettings implements Parcelable{
         this.thumbnail = thumbnail;
         this.lastSeen = lastSeen;
         this.online = online;
-        Log.d(TAG, "AccountSettings: "+online);
     }
 
-    public String getName() {
-        return name;
+    public AccountSettings(String name, String status, String phoneNum, String profilePic, String thumbnail, String lastSeen, Boolean online, String userId) {
+        this.name = name;
+        this.status = status;
+        this.phoneNum = phoneNum;
+        this.profilePic = profilePic;
+        this.thumbnail = thumbnail;
+        this.lastSeen = lastSeen;
+        this.online = online;
+        this.userId = userId;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public String getStatus() {
-        return status;
+    public String getName() {
+        return name;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public String getStatus() {
+        return status;
     }
 
     public String getPhoneNum() {
         return phoneNum;
     }
 
-    public void setPhoneNum(String phoneNum) {
-        this.phoneNum = phoneNum;
-    }
-
     public String getProfilePic() {
         return profilePic;
-    }
-
-    public void setProfilePic(String profilePic) {
-        this.profilePic = profilePic;
     }
 
     public String getThumbnail() {
         return thumbnail;
     }
 
-    public void setThumbnail(String thumbnail) {
-        this.thumbnail = thumbnail;
-    }
-
     public String getLastSeen() {
         return lastSeen;
-    }
-
-    public void setLastSeen(String lastSeen) {
-        this.lastSeen = lastSeen;
     }
 
     public Boolean getOnline() {
         return online;
     }
 
-    public void setOnline(Boolean online) {
-        this.online = online;
+    public String getUserId() {
+        return userId;
     }
 
     protected AccountSettings(Parcel in) {
@@ -90,6 +84,7 @@ public class AccountSettings implements Parcelable{
         lastSeen = in.readString();
         byte tmpOnline = in.readByte();
         online = tmpOnline == 0 ? null : tmpOnline == 1;
+        userId = in.readString();
     }
 
     public static final Creator<AccountSettings> CREATOR = new Creator<AccountSettings>() {
@@ -118,6 +113,7 @@ public class AccountSettings implements Parcelable{
         dest.writeString(thumbnail);
         dest.writeString(lastSeen);
         dest.writeByte((byte) (online == null ? 0 : online ? 1 : 2));
+        dest.writeString(userId);
     }
 }
 

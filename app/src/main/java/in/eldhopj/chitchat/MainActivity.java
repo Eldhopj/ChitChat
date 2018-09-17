@@ -12,12 +12,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.firebase.database.ServerValue;
+
 import java.util.List;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
 
+import static in.eldhopj.chitchat.others.Common.LAST_SEEN;
 import static in.eldhopj.chitchat.others.Common.ONLINE;
 import static in.eldhopj.chitchat.others.Common.firebaseUser;
 import static in.eldhopj.chitchat.others.Common.mAuth;
@@ -74,7 +77,11 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mUserDb.child(ONLINE).setValue(false);
+        if(firebaseUser != null)
+        {
+            mUserDb.child(ONLINE).setValue(false);
+            mUserDb.child(LAST_SEEN).setValue(ServerValue.TIMESTAMP);
+        }
     }
 
 

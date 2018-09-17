@@ -9,6 +9,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -36,7 +37,7 @@ public class Common extends Application {
 
     //Intent
     public static final String PROFILE_ITEMS = "profile";
-
+    public static final String CONVERSATION = "conversation";
 
     @Override
     public void onCreate() {
@@ -52,6 +53,22 @@ public class Common extends Application {
         if (firebaseUser != null) {
             uID = firebaseUser.getUid();
             mUserDb = rootReference.child(USERS).child(uID);
+
+            //--------------------Presence System-------------------------------
+            final DatabaseReference mUserDb = rootReference.child(USERS).child(uID);
+            mUserDb.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                    mUserDb.child(ONLINE).onDisconnect().setValue(false);
+                    //         mUserDb.child(ONLINE).setValue(true);
+                    mUserDb.child(LAST_SEEN).onDisconnect().setValue(ServerValue.TIMESTAMP);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                }
+            });
         }
 
         //-------------------Picasso offline capabilities------------------
@@ -61,20 +78,5 @@ public class Common extends Application {
         built.setIndicatorsEnabled(true);
         built.setLoggingEnabled(true);
         Picasso.setSingletonInstance(built);
-
-        //--------------------Presence System-------------------------------
-        final DatabaseReference mUserDb = rootReference.child(USERS).child(uID);
-        mUserDb.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-
-                mUserDb.child(ONLINE).onDisconnect().setValue(false);
-       //         mUserDb.child(ONLINE).setValue(true);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-            }
-        });
     }
 }
