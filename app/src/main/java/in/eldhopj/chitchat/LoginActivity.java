@@ -22,6 +22,7 @@ import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.hbb20.CountryCodePicker;
 
@@ -156,7 +157,7 @@ public class LoginActivity extends AppCompatActivity {
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {  // dataSnapshot contains all the info which we are referring to
                                 if (!dataSnapshot.exists()){ // checks whether something inside the database, if No add data
                                     //@params name , PHONE_NUMBER
-                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null,"",true);
+                                    AccountSettings userData = new AccountSettings("","",firebaseUser.getPhoneNumber(),null,null, ServerValue.TIMESTAMP.toString(),true);
                                     mUserDb.setValue(userData);
                                 }
                                 settingsActivityIntent();

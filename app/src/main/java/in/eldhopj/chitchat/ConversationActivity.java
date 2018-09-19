@@ -3,29 +3,51 @@ package in.eldhopj.chitchat;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import de.hdodenhof.circleimageview.CircleImageView;
+import in.eldhopj.chitchat.Adapters.ChatAdapter;
 import in.eldhopj.chitchat.ModelClass.AccountSettings;
+import in.eldhopj.chitchat.ModelClass.Conversations;
 import in.eldhopj.chitchat.others.TimeAgo;
 
+import static in.eldhopj.chitchat.others.Common.CHAT;
 import static in.eldhopj.chitchat.others.Common.CONVERSATION;
+import static in.eldhopj.chitchat.others.Common.FROM;
 import static in.eldhopj.chitchat.others.Common.LAST_SEEN;
+import static in.eldhopj.chitchat.others.Common.MESSAGE;
 import static in.eldhopj.chitchat.others.Common.ONLINE;
+import static in.eldhopj.chitchat.others.Common.SEEN;
+import static in.eldhopj.chitchat.others.Common.TIMESTAMP;
+import static in.eldhopj.chitchat.others.Common.TYPE;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.mUserDb;
 import static in.eldhopj.chitchat.others.Common.rootReference;
+import static in.eldhopj.chitchat.others.Common.uID;
 
 public class ConversationActivity extends AppCompatActivity {
     private static final String TAG = "ConversationActivity";
@@ -35,11 +57,18 @@ public class ConversationActivity extends AppCompatActivity {
     String lastSeen;
     String thumbnailUrl;
     TextView onlineStatus;
+    EditText messageBoxEt;
+
+    private RecyclerView mRecyclerView;
+    private List<Conversations> mListItems;
+    private ChatAdapter mChatAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conversation);
         onlineStatus = findViewById(R.id.lastSeenConvo);
+        messageBoxEt = findViewById(R.id.messageBox);
+        mListItems = new ArrayList<>();
 
         Intent intent = getIntent();
         AccountSettings clickedItem = intent.getParcelableExtra(CONVERSATION);
@@ -49,6 +78,30 @@ public class ConversationActivity extends AppCompatActivity {
         chatUserID = clickedItem.getUserId();
 
         setToolbar(userName,thumbnailUrl);
+        initRecyclerView();
+        loadMessages();
+
+        final DatabaseReference chatRef = rootReference.child(CHAT).child(uID);
+        chatRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.hasChild(chatUserID)){
+
+                    HashMap<String,Object> chat = new HashMap<>();
+                    chat.put(TIMESTAMP,ServerValue.TIMESTAMP);
+                    chat.put(SEEN,false);
+
+
+                    chatRef.child(chatUserID).setValue(chat);
+                    rootReference.child(CHAT).child(chatUserID).child(uID).setValue(chat);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Toast.makeText(ConversationActivity.this, "Error :"+databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -86,6 +139,7 @@ public class ConversationActivity extends AppCompatActivity {
         mUserDb.child(ONLINE).setValue(false);
         mUserDb.child(LAST_SEEN).setValue(ServerValue.TIMESTAMP);
     }
+
 
     // Menu Starts here
     @Override
@@ -138,4 +192,84 @@ public class ConversationActivity extends AppCompatActivity {
         finish();
         return;
     }
+
+    public void sendMessage(View view) {
+        final EditText messageBoxEt = findViewById(R.id.messageBox);
+        String message = messageBoxEt.getText().toString();
+        Boolean seen = false;
+        String type = "text";
+        DatabaseReference messageReference = rootReference.child(MESSAGE).child(chatUserID).child(uID).push();
+        String pushId = messageReference.getKey();
+        if (message.isEmpty()) {
+            messageBoxEt.setError("Empty Message");
+            messageBoxEt.requestFocus();
+            return;
+        }
+        HashMap<String,Object> conversation = new HashMap<>();
+        conversation.put(MESSAGE,message);
+        conversation.put(SEEN,seen);
+        conversation.put(TYPE,type);
+        conversation.put(TIMESTAMP,ServerValue.TIMESTAMP);
+        conversation.put(FROM,uID);
+
+        HashMap<String,Object> sendMessage = new HashMap<>();
+        sendMessage.put("message/"+uID+"/"+chatUserID+"/"+pushId,conversation);
+        sendMessage.put("message/"+chatUserID+"/"+uID+"/"+pushId,conversation);
+
+        messageBoxEt.setText("");
+
+        rootReference.updateChildren(sendMessage).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(ConversationActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+   private void loadMessages(){
+        rootReference.child(MESSAGE).child(uID).child(chatUserID).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                Conversations conversations = dataSnapshot.getValue(Conversations.class);
+                mListItems.add(mListItems.size(),conversations);
+                mChatAdapter.notifyItemInserted(mListItems.size());
+                mRecyclerView.scrollToPosition(mListItems.size()-1);
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+   private void initRecyclerView(){
+
+       LinearLayoutManager layoutManager;
+       mRecyclerView = findViewById(R.id.recyclerView);
+       mRecyclerView.setHasFixedSize(true); // setting it to true allows some optimization to our view , avoiding validations when mRecyclerAdapter content changes
+
+       layoutManager  = new LinearLayoutManager(this,LinearLayoutManager.VERTICAL, false); //it can be GridLayoutManager or StaggeredGridLayoutManager
+       layoutManager.setStackFromEnd(true);
+       mRecyclerView.setLayoutManager(layoutManager);
+
+       mChatAdapter = new ChatAdapter(mListItems, this);
+//        mRecyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL)); // Divider decorations
+       mRecyclerView.setAdapter(mChatAdapter);
+   }
 }

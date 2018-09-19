@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
@@ -41,6 +43,7 @@ import static in.eldhopj.chitchat.others.Common.PROFILE_ITEMS;
 import static in.eldhopj.chitchat.others.Common.PROFILE_PICS;
 import static in.eldhopj.chitchat.others.Common.STATUS;
 import static in.eldhopj.chitchat.others.Common.THUMBNAIL;
+import static in.eldhopj.chitchat.others.Common.TIMESTAMP;
 import static in.eldhopj.chitchat.others.Common.USERS;
 import static in.eldhopj.chitchat.others.Common.mAuth;
 import static in.eldhopj.chitchat.others.Common.mUserDb;
@@ -56,6 +59,7 @@ public class FindUserActivity extends AppCompatActivity {
     private List<PhoneContacts> mContactList; // mContactList ->Contacts in your phone
     private List<AccountSettings> mUserList; // mUserList -> ChitChat USERS
     private UserListAdapter mUserListAdapter;
+    private SwipeRefreshLayout swipeToRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +77,8 @@ public class FindUserActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading Users...");
 
         mainToolbar = findViewById(R.id.toolbar_main);
+        swipeToRefresh = findViewById(R.id.swipeRefreshLayout);
+
         setSupportActionBar(mainToolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Chit Chat");
@@ -96,6 +102,16 @@ public class FindUserActivity extends AppCompatActivity {
                 Intent detailedProfile = new Intent(getApplicationContext(), ProfileActivity.class);
                 detailedProfile.putExtra(PROFILE_ITEMS,mUserList.get(position)); // Passing the position of the clicked item
                 startActivity(detailedProfile);
+            }
+        });
+
+        /**On refresh layout logic*/
+        swipeToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                mUserList.clear();
+                mContactList.clear();
+                new GetContactList().execute();
             }
         });
     }
@@ -205,7 +221,8 @@ public class FindUserActivity extends AppCompatActivity {
     private void fetchUsers(final List<PhoneContacts> mContactList) {
         Log.d(TAG, "fetchUsers: ");
 
-        rootReference.child(USERS).addListenerForSingleValueEvent(new ValueEventListener() {
+        Query query = rootReference.child(USERS).orderByChild(TIMESTAMP);
+        query.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull final DataSnapshot dataSnapshot) {
 
@@ -284,6 +301,7 @@ public class FindUserActivity extends AppCompatActivity {
 
 
         });
+        swipeToRefresh.setRefreshing(false);
     }
 
             /**Initializing recycler view*/

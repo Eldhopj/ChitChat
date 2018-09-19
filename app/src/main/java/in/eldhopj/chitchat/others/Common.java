@@ -34,6 +34,12 @@ public class Common extends Application {
         //Common for both Storage and the DB for saving the download link in db
         public static final String PROFILE_PICS = "profile_pics";
         public static final String THUMBNAIL = "thumbnail";
+    public static final String CHAT = "chat";
+    public static final String MESSAGE = "message";
+        public static final String SEEN = "seen";
+        public static final String TYPE = "type";
+        public static final String TIMESTAMP = "timeStamp";
+        public static final String FROM = "from";
 
     //Intent
     public static final String PROFILE_ITEMS = "profile";
